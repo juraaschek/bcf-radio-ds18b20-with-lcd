@@ -1,9 +1,9 @@
-<a href="https://www.bigclown.com/"><img src="https://bigclown.sirv.com/logo.png" width="200" alt="BigClown Logo" align="right"></a>
+<a href="https://www.hardwario.com/"><img src="https://www.hardwario.com/ci/assets/hw-logo.svg" width="200" alt="HARDWARIO Logo" align="right"></a>
 
-[![Travis](https://img.shields.io/travis/bigclownlabs/bcf-skeleton/master.svg)](https://travis-ci.org/bigclownlabs/bcf-skeleton)
-[![Release](https://img.shields.io/github/release/bigclownlabs/bcf-skeleton.svg)](https://github.com/bigclownlabs/bcf-skeleton/releases)
-[![License](https://img.shields.io/github/license/bigclownlabs/bcf-skeleton.svg)](https://github.com/bigclownlabs/bcf-skeleton/blob/master/LICENSE)
-[![Twitter](https://img.shields.io/twitter/follow/BigClownLabs.svg?style=social&label=Follow)](https://twitter.com/BigClownLabs)
+[![Travis](https://img.shields.io/travis/bigclownprojects/bcf-radio-ds18b20-with-lcd/master.svg)](https://travis-ci.org/bigclownprojects/bcf-radio-ds18b20-with-lcd)
+[![Release](https://img.shields.io/github/release/bigclownprojects/bcf-radio-ds18b20-with-lcd.svg)](https://github.com/bigclownprojects/bcf-radio-ds18b20-with-lcd/releases)
+[![License](https://img.shields.io/github/license/bigclownprojects/bcf-radio-ds18b20-with-lcd.svg)](https://github.com/bigclownprojects/bcf-radio-ds18b20-with-lcd/blob/master/LICENSE)
+[![Twitter](https://img.shields.io/twitter/follow/hardwario_en.svg?style=social&label=Follow)](https://twitter.com/hardwario_en)
 
 This repository contains firmware ds18b20 with lcd for [Core Module](https://shop.bigclown.com/core-module).
 
