@@ -31,6 +31,11 @@ DATA- yellow (white)
 #define TEMPERATURE_DS18B20_PUB_NO_CHANGE_INTEVAL (5  * 60* 1000)
 #define TEMPERATURE_DS18B20_PUB_VALUE_CHANGE 0.5f
 
+#define TEMPERATURE_TAG_PUB_VALUE_CHANGE 0.2f
+#define TEMPERATURE_TAG_PUB_NO_CHANGE_INTEVAL (15 * 60 * 1000)
+#define APPLICATION_TASK_ID 0
+
+
 static bc_led_t led;
 
 float temperature_on_display = NAN;
@@ -39,13 +44,15 @@ static bc_ds18b20_t ds18b20;
 
 int device_index;
 
+// Thermometer instance
+bc_tmp112_t tmp112;
+event_param_t temperature_event_param = { .next_pub = 0, .value = NAN };
+event_param_t temperature_set_point;
+
 
 struct {
-    event_param_t temperature;
+    event_param_t temperature_112;
     event_param_t temperature_ds18b20;
-    event_param_t humidity;
-    event_param_t illuminance;
-    event_param_t pressure;
 
 } params;
 
@@ -66,6 +73,40 @@ void battery_event_handler(bc_module_battery_event_t e, void *p)
     {
         bc_radio_pub_battery(&voltage);
     }
+}
+
+
+void tmp112_event_handler(bc_tmp112_t *self, bc_tmp112_event_t event, void *event_param)
+{
+    float value;
+    // event_param_t *param = (event_param_t *)event_param;
+
+    if (event != BC_TMP112_EVENT_UPDATE)
+    {
+        return;
+    }
+
+    if (bc_tmp112_get_temperature_celsius(self, &value))
+    {
+        if ((fabsf(value - params.temperature_112.value) >= TEMPERATURE_TAG_PUB_VALUE_CHANGE) || (params.temperature_112.next_pub < bc_scheduler_get_spin_tick()))
+        {
+            // bc_radio_pub_temperature(BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_ALTERNATE, &value);
+            params.temperature_112.value = value;
+            params.temperature_112.next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_TAG_PUB_NO_CHANGE_INTEVAL;
+        }
+    }
+    else
+    {
+        params.temperature_112.value = NAN;
+    }
+
+    // if (temperature_set_point.next_pub < bc_scheduler_get_spin_tick())
+    // {
+    //     radio_pub_set_temperature();
+    // }
+
+    bc_scheduler_plan_from_now(APPLICATION_TASK_ID, 300);
+
 }
 
 void ds18b20_event_handler(bc_ds18b20_t *self, uint64_t device_address, bc_ds18b20_event_t e, void *p)
@@ -114,6 +155,11 @@ void application_init(void)
     bc_module_battery_set_event_handler(battery_event_handler, NULL);
     bc_module_battery_set_update_interval(BATTERY_UPDATE_INTERVAL);
 
+    // Initialize thermometer sensor on core module
+    bc_tmp112_init(&tmp112, BC_I2C_I2C0, 0x49);
+    bc_tmp112_set_event_handler(&tmp112, tmp112_event_handler, NULL);
+    bc_tmp112_set_update_interval(&tmp112, UPDATE_SERVICE_INTERVAL);
+
     // For single sensor you can call bc_ds18b20_init()
     bc_ds18b20_init(&ds18b20, BC_DS18B20_RESOLUTION_BITS_12);
 
@@ -134,7 +180,8 @@ void application_init(void)
 
 void application_task(void)
 {
-    static char str_temperature[10];
+    static char str_temperature_inside[10];
+    static char str_temperature_outside[10];
 
     if (!bc_module_lcd_is_ready())
     {
@@ -145,13 +192,30 @@ void application_task(void)
 
     bc_module_lcd_clear();
 
+    // Print core (inside) temperature sensor
+    bc_module_lcd_set_font(&bc_font_ubuntu_13);
+    bc_module_lcd_draw_string(20, 05, "INSIDE   ", true);
+    
     bc_module_lcd_set_font(&bc_font_ubuntu_33);
-    snprintf(str_temperature, sizeof(str_temperature), "%.1f   ", params.temperature_ds18b20.value);
-    int x = bc_module_lcd_draw_string(20, 20, str_temperature, true);
-    temperature_on_display = params.temperature_ds18b20.value;
+    snprintf(str_temperature_inside, sizeof(str_temperature_inside), "%.1f   ", params.temperature_112.value);
+    int x2 = bc_module_lcd_draw_string(20, 20, str_temperature_inside, true);
+    bc_module_lcd_set_font(&bc_font_ubuntu_24);
+    bc_module_lcd_draw_string(x2 - 20, 25, "\xb0" "C   ", true);
+
+
+    // Print ds18b20 (outside) temperature sensor
+    bc_module_lcd_set_font(&bc_font_ubuntu_13);
+    bc_module_lcd_draw_string(20, 75, "OUTSIDE   ", true);
+
+    bc_module_lcd_set_font(&bc_font_ubuntu_33);
+    snprintf(str_temperature_outside, sizeof(str_temperature_outside), "%.1f   ", params.temperature_ds18b20.value);
+    int x1 = bc_module_lcd_draw_string(20, 90, str_temperature_outside, true);
+    // temperature_on_display = params.temperature_ds18b20.value;
 
     bc_module_lcd_set_font(&bc_font_ubuntu_24);
-    bc_module_lcd_draw_string(x - 20, 25, "\xb0" "C   ", true);
+    bc_module_lcd_draw_string(x1 - 20, 95, "\xb0" "C   ", true);
+
+
 
     bc_module_lcd_update();
 
