@@ -76,10 +76,10 @@ void battery_event_handler(bc_module_battery_event_t e, void *p)
 }
 
 
-void tmp112_event_handler(bc_tmp112_t *self, bc_tmp112_event_t event, void *event_param)
+void tmp112_event_handler(bc_tmp112_t *self, bc_tmp112_event_t event, void *p)
 {
-    float value;
-    // event_param_t *param = (event_param_t *)event_param;
+    (void) p;
+    float value = NAN;
 
     if (event != BC_TMP112_EVENT_UPDATE)
     {
@@ -90,29 +90,21 @@ void tmp112_event_handler(bc_tmp112_t *self, bc_tmp112_event_t event, void *even
     {
         if ((fabsf(value - params.temperature_112.value) >= TEMPERATURE_TAG_PUB_VALUE_CHANGE) || (params.temperature_112.next_pub < bc_scheduler_get_spin_tick()))
         {
-            // bc_radio_pub_temperature(BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_ALTERNATE, &value);
+            bc_radio_pub_temperature(BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_ALTERNATE, &value);
             params.temperature_112.value = value;
             params.temperature_112.next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_TAG_PUB_NO_CHANGE_INTEVAL;
+            
+            bc_scheduler_plan_from_now(APPLICATION_TASK_ID, 300);
         }
     }
-    else
-    {
-        params.temperature_112.value = NAN;
-    }
 
-    // if (temperature_set_point.next_pub < bc_scheduler_get_spin_tick())
-    // {
-    //     radio_pub_set_temperature();
-    // }
 
-    bc_scheduler_plan_from_now(APPLICATION_TASK_ID, 300);
 
 }
 
 void ds18b20_event_handler(bc_ds18b20_t *self, uint64_t device_address, bc_ds18b20_event_t e, void *p)
 {
     (void) p;
-
     float value = NAN;
 
     if (e == bc_ds18b20_EVENT_UPDATE)
@@ -128,8 +120,8 @@ void ds18b20_event_handler(bc_ds18b20_t *self, uint64_t device_address, bc_ds18b
             bc_radio_pub_float(topic, &value);
             params.temperature_ds18b20.value = value;
             params.temperature_ds18b20.next_pub = bc_scheduler_get_spin_tick() + TEMPERATURE_DS18B20_PUB_NO_CHANGE_INTEVAL;
-            bc_scheduler_plan_from_now(0, 300);
 
+            bc_scheduler_plan_from_now(APPLICATION_TASK_ID, 300);
         }
     }
 }
@@ -192,28 +184,29 @@ void application_task(void)
 
     bc_module_lcd_clear();
 
-    // Print core (inside) temperature sensor
-    bc_module_lcd_set_font(&bc_font_ubuntu_13);
-    bc_module_lcd_draw_string(20, 05, "INSIDE   ", true);
-    
-    bc_module_lcd_set_font(&bc_font_ubuntu_33);
-    snprintf(str_temperature_inside, sizeof(str_temperature_inside), "%.1f   ", params.temperature_112.value);
-    int x2 = bc_module_lcd_draw_string(20, 20, str_temperature_inside, true);
-    bc_module_lcd_set_font(&bc_font_ubuntu_24);
-    bc_module_lcd_draw_string(x2 - 20, 25, "\xb0" "C   ", true);
-
 
     // Print ds18b20 (outside) temperature sensor
     bc_module_lcd_set_font(&bc_font_ubuntu_13);
-    bc_module_lcd_draw_string(20, 75, "OUTSIDE   ", true);
+    bc_module_lcd_draw_string(20, 05, "OUTSIDE   ", true);
 
     bc_module_lcd_set_font(&bc_font_ubuntu_33);
     snprintf(str_temperature_outside, sizeof(str_temperature_outside), "%.1f   ", params.temperature_ds18b20.value);
-    int x1 = bc_module_lcd_draw_string(20, 90, str_temperature_outside, true);
+    int x1 = bc_module_lcd_draw_string(20, 20, str_temperature_outside, true);
     // temperature_on_display = params.temperature_ds18b20.value;
 
     bc_module_lcd_set_font(&bc_font_ubuntu_24);
-    bc_module_lcd_draw_string(x1 - 20, 95, "\xb0" "C   ", true);
+    bc_module_lcd_draw_string(x1 - 20, 25, "\xb0" "C   ", true);
+
+
+    // Print core (inside) temperature sensor
+    bc_module_lcd_set_font(&bc_font_ubuntu_13);
+    bc_module_lcd_draw_string(20, 75, "INSIDE   ", true); // 20 05
+    
+    bc_module_lcd_set_font(&bc_font_ubuntu_33);
+    snprintf(str_temperature_inside, sizeof(str_temperature_inside), "%.1f   ", params.temperature_112.value);
+    int x2 = bc_module_lcd_draw_string(20, 90, str_temperature_inside, true); // 20 20
+    bc_module_lcd_set_font(&bc_font_ubuntu_24);
+    bc_module_lcd_draw_string(x2 - 20, 95, "\xb0" "C   ", true); // 20 25
 
 
 
